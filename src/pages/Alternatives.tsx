@@ -3,6 +3,7 @@ import { usePriceWatch } from '../context/PriceWatchContext';
 import { alternativeService } from '../services/alternativeService';
 import AlternativeCard from '../components/AlternativeCard';
 import CrossStoreComparison from '../components/CrossStoreComparison';
+import SmartAlternativesSection from '../components/SmartAlternativesSection';
 import type { AlternativeProduct, StoreListing } from '../types';
 
 import { Sparkles, ArrowRightLeft, X, Check, Watch, Smartphone, Headphones, Laptop, Layers } from 'lucide-react';
@@ -184,6 +185,9 @@ export default function Alternatives() {
           <CrossStoreComparison listings={storeListings} productName={selectedProduct.name} />
         </div>
       )}
+
+      {/* 2. Real Smart Same-Category Alternatives */}
+      <SmartAlternativesSection product={selectedProduct} className="mb-10" />
 
       {/* 2. Similar Alternative Products Section */}
       <div className="mb-8">

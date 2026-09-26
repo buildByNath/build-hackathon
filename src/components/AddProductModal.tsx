@@ -4,6 +4,7 @@ import { CheckCircle, Loader2, Sparkles, X, Target, Bell, AlertTriangle, Refresh
 import { productService, type ProductAnalysisResult } from '../services/productService';
 import { extractAmazonProductId } from '../services/amazonService';
 import { usePriceWatch } from '../context/PriceWatchContext';
+import SmartAlternativesSection from './SmartAlternativesSection';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -122,7 +123,7 @@ export default function AddProductModal({ isOpen, onClose, initialUrl = '' }: Ad
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-3xl bg-white p-6 text-left align-middle shadow-2xl transition-all border border-gray-100">
+              <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-3xl bg-white p-6 text-left align-middle shadow-2xl transition-all border border-gray-100 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                   <Dialog.Title as="h3" className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
@@ -386,6 +387,9 @@ export default function AddProductModal({ isOpen, onClose, initialUrl = '' }: Ad
                         </label>
                       </div>
                     </div>
+
+                    {/* 💡 BETTER ALTERNATIVES (SAME-CATEGORY & APPROXIMATE PRICE) */}
+                    <SmartAlternativesSection product={analysisResult.product} className="mt-4" />
                   </div>
                 )}
 

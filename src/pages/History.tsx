@@ -6,6 +6,7 @@ import { aiService } from '../services/aiService';
 import PriceChart from '../components/PriceChart';
 import AIInsightCard from '../components/AIInsightCard';
 import GeminiProductAnalysis from '../components/GeminiProductAnalysis';
+import SmartAlternativesSection from '../components/SmartAlternativesSection';
 import StatCard from '../components/StatCard';
 import type { PriceHistoryPoint, AIDealInsight } from '../types';
 import {
@@ -269,6 +270,9 @@ export default function History() {
 
       {/* Google Gemini AI Deep-Dive Analysis */}
       <GeminiProductAnalysis product={selectedProduct} history={history} />
+
+      {/* 💡 Smart Same-Category Alternatives */}
+      <SmartAlternativesSection product={selectedProduct} className="mb-8" />
 
       {/* Price Snapshot Log Table */}
       <div className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs">

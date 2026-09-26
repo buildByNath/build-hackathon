@@ -22,6 +22,7 @@ import {
   queryShoppingAssistantWithGemini
 } from './services/geminiService.js';
 import { emailService } from './services/emailService.js';
+import { getSmartAlternatives } from './services/alternativesService.js';
 
 dotenv.config();
 
@@ -125,6 +126,28 @@ app.get('/api/amazon/search', async (req: Request, res: Response) => {
       success: false,
       error: err.message || 'Search failed.',
       products: []
+    });
+  }
+});
+
+// 3.5. SMART SAME-CATEGORY ALTERNATIVES (SERPAPI + DETERMINISTIC RANKING)
+app.post('/api/products/alternatives', async (req: Request, res: Response) => {
+  try {
+    const { product, expandRange = false } = req.body;
+    if (!product || !product.name || product.currentPrice === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product payload containing name and currentPrice is required.'
+      });
+    }
+
+    const alternativesData = await getSmartAlternatives(product, Boolean(expandRange));
+    return res.json(alternativesData);
+  } catch (err: any) {
+    console.error('[API] /api/products/alternatives error:', err.message);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to fetch alternatives.'
     });
   }
 });
