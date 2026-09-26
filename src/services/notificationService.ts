@@ -115,6 +115,43 @@ export const notificationService = {
   },
 
   /**
+   * Send email notification via the backend API (real Gmail SMTP)
+   */
+  async sendEmailViaBackend(payload: WhatsAppNotificationPayload, eventType: string): Promise<{ success: boolean; simulated: boolean }> {
+    try {
+      const prefs = this.defaultPreferences;
+      const recipientEmail = prefs.channels.emailAddress || 'user@example.com';
+
+      const response = await fetch('http://localhost:3001/api/email/price-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipientEmail,
+          productName: payload.product.name,
+          productBrand: (payload.product as any).brand || '',
+          previousPrice: payload.previousPrice,
+          currentPrice: payload.currentPrice,
+          targetPrice: payload.targetPrice,
+          savings: Math.max(0, payload.previousPrice - payload.currentPrice),
+          store: payload.product.store || 'Amazon India',
+          productUrl: payload.product.url,
+          imageUrl: payload.product.imageUrl,
+          eventType: eventType === 'target_reached' ? 'TARGET_REACHED'
+            : eventType === 'cart_target_reached' ? 'CART_TARGET_REACHED'
+            : eventType === 'cart_price_drop' ? 'CART_PRICE_DROP'
+            : 'PRICE_DROP',
+        }),
+      });
+
+      const data = await response.json();
+      return { success: data.success, simulated: false };
+    } catch (err) {
+      console.warn('[NotificationService] Backend email send failed, falling back to simulated:', err);
+      return { success: false, simulated: true };
+    }
+  },
+
+  /**
    * Unified Dispatch Engine
    */
   async dispatchEvent(
@@ -139,14 +176,17 @@ export const notificationService = {
       });
     }
 
-    // 2. Email Channel (Simulated)
+    // 2. Email Channel (Real Gmail SMTP via backend)
     if (activePrefs.channels.email) {
+      const emailResult = await this.sendEmailViaBackend(payload, _event);
       newLogs.push({
         id: `log-em-${Date.now()}`,
         channel: 'email',
-        status: 'simulated',
-        title: '📧 Email Notification',
-        message: `Price drop digest dispatched to ${activePrefs.channels.emailAddress || 'user@example.com'}`,
+        status: emailResult.success ? 'delivered' : (emailResult.simulated ? 'simulated' : 'failed'),
+        title: emailResult.success ? '📧 Email Sent' : '📧 Email Notification',
+        message: emailResult.success
+          ? `Price alert email sent to ${activePrefs.channels.emailAddress || 'user@example.com'}`
+          : `Email dispatch to ${activePrefs.channels.emailAddress || 'user@example.com'} (fallback)`,
         timestamp: 'Just now'
       });
     }

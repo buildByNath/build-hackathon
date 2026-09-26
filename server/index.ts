@@ -21,6 +21,7 @@ import {
   parseShoppingQueryWithGemini,
   queryShoppingAssistantWithGemini
 } from './services/geminiService.js';
+import { emailService } from './services/emailService.js';
 
 dotenv.config();
 
@@ -56,7 +57,8 @@ app.get('/api/health', (req: Request, res: Response) => {
     gemini: {
       configured: Boolean(geminiKey && geminiKey !== 'your_gemini_api_key_here'),
       model: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
-    }
+    },
+    gmail: emailService.getStatus()
   });
 });
 
@@ -304,6 +306,104 @@ app.post('/api/gemini/assistant', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('[API] /api/gemini/assistant error:', err.message);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// 📧 GMAIL EMAIL NOTIFICATION ENDPOINTS
+// =========================================================================
+
+// 15. EMAIL STATUS (safe — never exposes password)
+app.get('/api/email/status', (req: Request, res: Response) => {
+  const status = emailService.getStatus();
+  res.json({ success: true, ...status });
+});
+
+// 16. VERIFY GMAIL SMTP CONNECTION
+app.post('/api/email/verify', async (req: Request, res: Response) => {
+  try {
+    const result = await emailService.verifyConnection();
+    return res.json({ success: result.success, message: result.message });
+  } catch (err: any) {
+    console.error('[API] /api/email/verify error:', err.message);
+    return res.status(500).json({ success: false, message: 'Email notification failed' });
+  }
+});
+
+// 17. SEND PRICE ALERT EMAIL (backend-triggered)
+app.post('/api/email/price-alert', async (req: Request, res: Response) => {
+  try {
+    const {
+      to,
+      productName,
+      productBrand,
+      previousPrice,
+      currentPrice,
+      targetPrice,
+      savings,
+      store,
+      productUrl,
+      imageUrl,
+      eventType
+    } = req.body;
+
+    if (!to || !productName || currentPrice === undefined || previousPrice === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: to, productName, previousPrice, currentPrice'
+      });
+    }
+
+    const validEvents = ['PRICE_DROP', 'TARGET_REACHED', 'NEW_LOW', 'CART_PRICE_DROP', 'CART_TARGET_REACHED'];
+    if (eventType && !validEvents.includes(eventType)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid eventType. Must be one of: ${validEvents.join(', ')}`
+      });
+    }
+
+    const result = await emailService.sendPriceAlertEmail({
+      to,
+      productName,
+      productBrand,
+      previousPrice,
+      currentPrice,
+      targetPrice,
+      savings: savings ?? Math.max(0, previousPrice - currentPrice),
+      store,
+      productUrl,
+      imageUrl,
+      eventType: eventType || 'PRICE_DROP',
+    });
+
+    if (result.success) {
+      return res.json({ success: true, messageId: result.messageId });
+    } else {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (err: any) {
+    console.error('[API] /api/email/price-alert error:', err.message);
+    return res.status(500).json({ success: false, error: 'Email notification failed' });
+  }
+});
+
+// 18. SEND TEST EMAIL (for verification)
+app.post('/api/email/test', async (req: Request, res: Response) => {
+  try {
+    const { to } = req.body;
+    if (!to) {
+      return res.status(400).json({ success: false, error: 'Recipient email address (to) required.' });
+    }
+
+    const result = await emailService.sendTestEmail(to);
+    if (result.success) {
+      return res.json({ success: true, message: `Test email sent to ${to}`, messageId: result.messageId });
+    } else {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (err: any) {
+    console.error('[API] /api/email/test error:', err.message);
+    return res.status(500).json({ success: false, error: 'Email notification failed' });
   }
 });
 

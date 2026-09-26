@@ -20,6 +20,9 @@ import { productService } from '../services/productService';
 import { aiService } from '../services/aiService';
 import { extractAmazonProductId } from '../services/amazonService';
 import type { Product } from '../types';
+import { getDealsByCategory, DEAL_CATEGORIES } from '../data/dealsData';
+import type { DealCategory } from '../data/dealsData';
+import TodaysDealCard from '../components/TodaysDealCard';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -36,6 +39,10 @@ export default function Home() {
   const [aiQuery, setAiQuery] = useState('');
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [aiResponse, setAiResponse] = useState<{ explanation: string; matchedIds: string[] } | null>(null);
+
+  // Today's Deals from deals_data.md
+  const [dealFilterCategory, setDealFilterCategory] = useState<DealCategory>('all');
+  const filteredDeals = getDealsByCategory(dealFilterCategory);
 
   // Initial featured hero product
   const heroProduct = products.find((p) => p.id === 'prod-xm5') || products[0];
@@ -317,6 +324,53 @@ export default function Home() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* 🔥 TODAY'S DEALS FROM deals_data.md */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Flame size={22} className="text-orange-500" />
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+                🔥 Today's Deals
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500">
+              {filteredDeals.length} handpicked deals across top Indian retailers
+            </p>
+          </div>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {DEAL_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => setDealFilterCategory(cat.key)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
+                  dealFilterCategory === cat.key
+                    ? 'bg-gray-900 text-white shadow-xs'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                {cat.emoji} {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Deals Grid */}
+        {filteredDeals.length === 0 ? (
+          <div className="bg-gray-50 rounded-3xl p-10 text-center border border-gray-100">
+            <p className="text-sm text-gray-500 font-medium">No deals found in this category.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDeals.map((deal) => (
+              <TodaysDealCard key={deal.id} deal={deal} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* REAL AMAZON DEALS DISCOVERY SECTION */}
